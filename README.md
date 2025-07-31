@@ -1,1 +1,2 @@
-# GMTKGameJam2025
+# GMTK Game Jam (2025)
+
