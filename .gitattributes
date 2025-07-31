@@ -1,0 +1,50 @@
+# Unity binary assets
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.tga     binary
+*.psd     binary
+*.ai      binary
+*.gif     binary
+*.bmp     binary
+*.tif     binary
+*.tiff    binary
+
+# Audio files
+*.mp3     binary
+*.ogg     binary
+*.wav     binary
+*.aif     binary
+*.aiff    binary
+
+# Video files (optional, if used in Unity)
+*.mp4     binary
+*.mov     binary
+*.webm    binary
+
+# Unity native binary assets (optional)
+*.unity   merge=unityyamlmerge eol=lf
+*.prefab  merge=unityyamlmerge eol=lf
+*.asset   merge=unityyamlmerge eol=lf
+*.mat     merge=unityyamlmerge eol=lf
+*.meta    merge=unityyamlmerge eol=lf
+
+# Prevent line-ending normalization on binary files
+*.png     -text
+*.jpg     -text
+*.jpeg    -text
+*.tga     -text
+*.psd     -text
+*.ai     -text
+*.gif     -text
+*.bmp     -text
+*.tif     -text
+*.tiff    -text
+*.mp3     -text
+*.ogg     -text
+*.wav     -text
+*.aif     -text
+*.aiff    -text
+*.mp4     -text
+*.mov     -text
+*.webm    -text
