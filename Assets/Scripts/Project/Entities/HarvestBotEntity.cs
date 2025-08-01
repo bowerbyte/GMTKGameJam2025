@@ -1,8 +1,5 @@
-using Mono.Cecil;
-using Project.Core;
 using Project.Enums;
 using Project.Level;
-using Unity.Mathematics;
 using UnityEngine;
 
 namespace Project.Entities
