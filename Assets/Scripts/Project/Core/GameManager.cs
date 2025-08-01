@@ -1,7 +1,6 @@
 using System.Collections.Generic;
-using Project.Entities;
+using Project.Enums;
 using Project.Level;
-using Project.Level.Enums;
 using Project.Level.Settings;
 using UnityEngine;
 
@@ -37,7 +36,17 @@ namespace Project.Core
             
             _levelManager.transform.SetParent(this.transform);
 
-            _levelManager.AddEntityOfTypeAt(EntityType.HarvestBot, new TilePosition(1,1));
+            var randomLocations = new HashSet<TileLocation>();
+            while (randomLocations.Count < 10)
+            {
+                var location = new TileLocation(UnityEngine.Random.Range(0, _levelManager.GridSize[0]-1), UnityEngine.Random.Range(0, _levelManager.GridSize[1]-1));
+                randomLocations.Add(location);
+            }
+
+            foreach (var location in randomLocations)
+            {
+                _levelManager.AddEntityOfTypeAt(EntityType.HarvestBot, location);
+            }
 
             // Game Simulation Steps
             // (1) Plan Movement

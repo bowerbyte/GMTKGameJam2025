@@ -9,19 +9,26 @@ namespace Project.Entities
 {
     public class HarvestBotEntity: LevelEntity, IMovableEntity
     {
-        public MoveRequest? GetMoveRequest(LevelManager level)
+        public MoveRequest? GetMoveRequest()
         {
+            var destination = this.Location + GridDirections.GridDirectionToOffset(this.Direction);
             return new MoveRequest()
             {
-                destination = this.Position + GridDirections.GridDirectionToOffset(this.Direction),
+                source = this.Location,
+                destination = destination,
             };
         }
 
-        public void MoveTo(TilePosition position)
+        public void OnMoveFailed()
         {
-            var localPosition = this.LevelManager.TilePositionToBaseLocalPosition(position);
+            SetDirectionImmediate(GridDirections.FlipDirection(this.Direction));
+        }
+
+        public void MoveTo(TileLocation location)
+        {
+            var localPosition = this.LevelManager.LocationToBasePosition(location);
             this.SetLocalPositionImmediate(localPosition);
-            this.Position = position;
+            this.Location = location;
         }
 
         public new static LevelEntity CreateTest()

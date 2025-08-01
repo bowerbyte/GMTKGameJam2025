@@ -5,15 +5,17 @@ namespace Project.Entities
 {
     public interface IMovableEntity
     {
-        public MoveRequest? GetMoveRequest(LevelManager level);
+        public MoveRequest? GetMoveRequest();
+        
+        public void OnMoveFailed();
 
 
-        public void MoveTo(TilePosition position);
+        public void MoveTo(TileLocation location);
     }
 
     public struct MoveRequest
     {
-        public int entityId;
-        public TilePosition destination;
+        public TileLocation source;
+        public TileLocation destination;
     }
 }

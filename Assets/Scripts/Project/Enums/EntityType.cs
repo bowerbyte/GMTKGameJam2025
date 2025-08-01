@@ -1,6 +1,6 @@
 using System;
 
-namespace Project.Level.Enums
+namespace Project.Enums
 {
     public enum EntityType : uint
     {

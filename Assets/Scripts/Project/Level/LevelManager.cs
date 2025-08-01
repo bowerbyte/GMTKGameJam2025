@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Project.Level.Enums;
 using Project.Entities;
+using Project.Enums;
 using Project.Level.Settings;
 using Unity.Mathematics;
 using UnityEngine;
@@ -21,7 +21,7 @@ namespace Project.Level
         
         
         private TileType[,] _tilesTypes;
-        private Dictionary<TilePosition, LevelEntity> _positionToEntity;
+        private Dictionary<TileLocation, LevelEntity> _locationToEntity; // TODO: For some entities to not be obstructing, should this be a list?
         private List<LevelEntity> _entities;
 
         public List<IMovableEntity> GetMovableEntities()
@@ -43,14 +43,17 @@ namespace Project.Level
         {
             _settings = settings;
             _tilesTypes = new TileType[this.GridSize[0], this.GridSize[1]];
-            _positionToEntity = new Dictionary<TilePosition, LevelEntity>();
+            _locationToEntity = new Dictionary<TileLocation, LevelEntity>();
             _entities = new List<LevelEntity>();
 
             for (int xi = 0; xi < this.GridSize[0]; xi++)
             {
                 for (int zi = 0; zi < this.GridSize[1]; zi++)
                 {
-                    _tilesTypes[xi, zi] = TileType.Grass;
+                    if (UnityEngine.Random.value > 0.1f)
+                    {
+                        _tilesTypes[xi, zi] = TileType.Grass;   
+                    }
                 }
             }
 
@@ -62,11 +65,14 @@ namespace Project.Level
             {
                 for (int zi = 0; zi < this.GridSize[1]; zi++)
                 {
-                    _tileObjects[xi, zi] = GetTileObjectForType(_tilesTypes[xi, zi]);
-
-                    var tilePos = new TilePosition(xi, zi);
+                    var tileType = _tilesTypes[xi, zi];
+                    if (tileType == TileType.Empty) { continue; }
                     
-                    _tileObjects[xi, zi].transform.position = TilePositionToBaseLocalPosition(tilePos);
+                    _tileObjects[xi, zi] = GetTileObjectForType(tileType);
+
+                    var tilePos = new TileLocation(xi, zi);
+                    
+                    _tileObjects[xi, zi].transform.position = LocationToBasePosition(tilePos);
                 }
             }
         }
@@ -92,7 +98,7 @@ namespace Project.Level
             }
         }
 
-        public float3 TilePositionToBaseLocalPosition(TilePosition tilePos)
+        public float3 LocationToBasePosition(TileLocation tilePos)
         {
             var dims = _settings.gridDimensions;
             var maxTile = (float2)dims / 2f - 0.5f;
@@ -103,35 +109,59 @@ namespace Project.Level
             return new float3(baseWorldPos.x, 0f, baseWorldPos.y);
         }
 
-        public void AddEntityOfTypeAt(EntityType entityType, TilePosition pos)
+        public LevelEntity AddEntityOfTypeAt(EntityType entityType, TileLocation pos)
         {
             var entity = LevelEntity.Create(entityType, this);
             this.AddEntityAt(entity, pos);
+            return entity;
         }
         
-        public void AddEntityAt(LevelEntity entity, TilePosition pos)
+        public void AddEntityAt(LevelEntity entity, TileLocation pos)
         {
             if (this.TryGetEntityAt(pos, out LevelEntity _))
             {
                 throw new ArgumentException($"Position {pos} already contains an entity");
             }
             
-            var localPos = TilePositionToBaseLocalPosition(pos);
+            var localPos = LocationToBasePosition(pos);
             entity.SetLocalPositionImmediate(localPos);
-            entity.Position = pos;
+            entity.Location = pos;
             
-            _positionToEntity.Add(pos, entity);
+            _locationToEntity.Add(pos, entity);
             _entities.Add(entity);
         }
 
-        public bool TryGetEntityAt(TilePosition pos, out LevelEntity levelEntity)
+        public bool TryGetEntityAt(TileLocation pos, out LevelEntity levelEntity)
         {
-            if (_positionToEntity.TryGetValue(pos, out levelEntity))
+            if (_locationToEntity.TryGetValue(pos, out levelEntity))
             {
                 return true;
             }
 
             return false;
+        }
+
+        private void OnEntityMoved(TileLocation source, TileLocation destination)
+        {
+            if (!TryGetEntityAt(source, out LevelEntity entity))
+            {
+                throw new Exception($"No entity found at {source}");
+            }
+            if (TryGetEntityAt(destination, out LevelEntity dentity))
+            {
+                if (EntityTypes.HasFlag(dentity.Type, EntityFlags.Obstructing))
+                {
+                    throw new Exception($"Attempting to move entity to location {destination}, which already has a obstructing entity");   
+                }
+            }
+
+            _locationToEntity.Remove(source);
+            _locationToEntity.Add(destination, entity);
+        }
+
+        public bool LocationInBounds(TileLocation location)
+        {
+            return location.x >= 0 && location.z >= 0 && location.x < this.GridSize[0] && location.z < this.GridSize[1];
         }
 
         public void RunStep()
@@ -142,39 +172,84 @@ namespace Project.Level
             for (int ei = 0; ei < entities.Count; ei++)
             {
                 var entity = entities[ei];
-                var request = entity.GetMoveRequest(this);
+                var request = entity.GetMoveRequest();
+                
                 if (!request.HasValue) { continue; }
+                
                 moveRequests.Add(entity, request.Value);
             }
             
             // Reconcile movement
 
             // TODO: Start with initial data about what positions are blocked/stepable
-            var targetCounts = new int[_settings.gridDimensions.x, _settings.gridDimensions.y]; 
+            var obstructions = GetObstructionMask();
             
             foreach (var request in moveRequests.Values)
             {
-                targetCounts[request.destination.x, request.destination.z] += 1;
+                if (!LocationInBounds(request.destination)) { continue; }
+                
+                // TODO: Handle two entities facing each other and trying to move past each other
+                // obstructions[request.source.x, request.source.z] -= 1; // allow entities to move into a tile as an existing entity moves out
+                obstructions[request.destination.x, request.destination.z] += 1;
             }
             
             foreach (var pair in moveRequests)
             {
                 var entity = pair.Key;
                 var request = pair.Value;
-                int count = targetCounts[request.destination.x, request.destination.z];
 
-                bool success = count <= 1;
+                bool success = false;
+
+                if (LocationInBounds(request.destination))
+                {
+                    int count = obstructions[request.destination.x, request.destination.z];
+                    success = count <= 1;   
+                }
 
                 if (success)
                 {
-                    // TODO: Store action for movement
                     entity.MoveTo(request.destination);
+                    OnEntityMoved(request.source, request.destination);
                 }
                 else
                 {
-                    // TODO: Store action for failure
+                    entity.OnMoveFailed();
                 }
             }
+        }
+
+        public int[,] GetObstructionMask()
+        {
+            var mask = new int[this.GridSize[0], this.GridSize[1]];
+
+            for (int xi = 0; xi < this.GridSize[0]; xi++)
+            {
+                for (int zi = 0; zi < this.GridSize[1]; zi++)
+                {
+                    var tile = _tilesTypes[xi, zi];
+                    if (!TileTypes.HasFlag(tile, TileFlags.Walkable))
+                    {
+                        mask[xi, zi] = 100000;
+                    }
+                }
+            }
+            
+            for (int xi = 0; xi < this.GridSize[0]; xi++)
+            {
+                for (int zi = 0; zi < this.GridSize[1]; zi++)
+                {
+                    var location = new TileLocation(xi, zi);
+                    if (TryGetEntityAt(location, out LevelEntity entity))
+                    {
+                        if (EntityTypes.HasFlag(entity.Type, EntityFlags.Obstructing))
+                        {
+                            mask[xi, zi] += 1;
+                        }
+                    }
+                }
+            }
+
+            return mask;
         }
 
         

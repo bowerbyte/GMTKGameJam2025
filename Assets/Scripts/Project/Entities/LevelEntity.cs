@@ -1,7 +1,6 @@
 using System;
 using Project.Enums;
 using Project.Level;
-using Project.Level.Enums;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -10,13 +9,21 @@ namespace Project.Entities
     public abstract class LevelEntity : MonoBehaviour
     {
         public EntityType Type { get; private set; }
-        public GridDirection Direction { get; private set; }
-        public TilePosition Position { get; set; }
+        public GridDirection Direction { get; protected set; }
+        public TileLocation Location { get; set; }
         public LevelManager LevelManager { get; set; }
 
         public void SetLocalPositionImmediate(float3 position)
         {
             this.transform.localPosition = position;
+        }
+
+        public void SetDirectionImmediate(GridDirection direction)
+        {
+            this.Direction = direction;
+            var offset = GridDirections.GridDirectionToOffset(direction);
+            var worldOffset = new Vector3(offset.x, 0f, offset.y);
+            this.transform.LookAt(this.transform.position + worldOffset);
         }
 
         public static LevelEntity CreateTest()
@@ -37,8 +44,10 @@ namespace Project.Entities
             }
 
             entity.Type = entityType;
-            entity.Direction = GridDirection.Forward;
+            // entity.Direction = GridDirection.North;
             entity.LevelManager = levelManager;
+            
+            entity.SetDirectionImmediate((GridDirection)UnityEngine.Random.Range(0, 3));
 
             return entity;
         }
