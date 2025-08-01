@@ -1,5 +1,4 @@
-using System;
-using Project.Level.Data;
+
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -11,11 +10,7 @@ namespace Project.Level.Settings
     {
         public int2 gridDimensions = new int2(16);
         
-
-        public LevelData GetInitialLevelData()
-        {
-            return LevelData.GetEmptyLevelData(gridDimensions);
-        }
+        
     }
     
 }
