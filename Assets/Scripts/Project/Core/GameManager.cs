@@ -36,17 +36,8 @@ namespace Project.Core
             
             _levelManager.transform.SetParent(this.transform);
 
-            var randomLocations = new HashSet<TileLocation>();
-            while (randomLocations.Count < 10)
-            {
-                var location = new TileLocation(UnityEngine.Random.Range(0, _levelManager.GridSize[0]-1), UnityEngine.Random.Range(0, _levelManager.GridSize[1]-1));
-                randomLocations.Add(location);
-            }
-
-            foreach (var location in randomLocations)
-            {
-                _levelManager.AddEntityOfTypeAt(EntityType.HarvestBot, location);
-            }
+            DebugAddNRandomEntities(10, EntityType.HarvestBot);
+            DebugAddNRandomEntities(10, EntityType.Tree);
 
             // Game Simulation Steps
             // (1) Plan Movement
@@ -55,6 +46,21 @@ namespace Project.Core
             // (2a) Reconcile Interactions
             // (3) Execute Movement + Interactions (if possible)
             // (4) Repeat
+        }
+
+        private void DebugAddNRandomEntities(int n, EntityType type)
+        {
+            var randomLocations = new HashSet<TileLocation>();
+            while (randomLocations.Count < n)
+            {
+                var location = new TileLocation(UnityEngine.Random.Range(0, _levelManager.GridSize[0]-1), UnityEngine.Random.Range(0, _levelManager.GridSize[1]-1));
+                randomLocations.Add(location);
+            }
+
+            foreach (var location in randomLocations)
+            {
+                _levelManager.AddEntityOfTypeAt(type, location);
+            }
         }
 
         private void Update()

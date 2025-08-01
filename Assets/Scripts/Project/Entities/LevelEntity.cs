@@ -1,4 +1,6 @@
 using System;
+using JetBrains.Annotations;
+using Project.Entities.Requests;
 using Project.Enums;
 using Project.Level;
 using Unity.Mathematics;
@@ -26,9 +28,19 @@ namespace Project.Entities
             this.transform.LookAt(this.transform.position + worldOffset);
         }
 
-        public static LevelEntity CreateTest()
+        [CanBeNull]
+        public virtual EntityAction GetActionRequest() => null;
+
+        public abstract void OnActionBegin(EntityAction request, bool approved);
+        
+
+        public static T Create<T>() where T : LevelEntity
         {
-            throw new NotImplementedException("This should be overriden in the base class (using new keyword)");
+            string filename = typeof(T).Name.Replace("Entity", "");
+            GameObject prefab = Resources.Load<GameObject>($"Prefabs/Entities/{filename}");
+            var instance = Instantiate(prefab);
+            var component = instance.GetComponent<T>();
+            return component;
         }
 
         public static LevelEntity Create(EntityType entityType, LevelManager levelManager)
@@ -37,7 +49,10 @@ namespace Project.Entities
             switch (entityType)
             {
                 case EntityType.HarvestBot:
-                    entity = HarvestBotEntity.CreateTest();
+                    entity = LevelEntity.Create<HarvestBotEntity>();
+                    break;
+                case EntityType.Tree:
+                    entity = LevelEntity.Create<TreeEntity>();
                     break;
                 default:
                     throw new NotImplementedException($"Entity creation for type {entityType} is not implemented");

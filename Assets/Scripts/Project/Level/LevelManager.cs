@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Project.Entities;
+using Project.Entities.Requests;
 using Project.Enums;
 using Project.Level.Settings;
 using Unity.Mathematics;
@@ -23,11 +24,6 @@ namespace Project.Level
         private TileType[,] _tilesTypes;
         private Dictionary<TileLocation, LevelEntity> _locationToEntity; // TODO: For some entities to not be obstructing, should this be a list?
         private List<LevelEntity> _entities;
-
-        public List<IMovableEntity> GetMovableEntities()
-        {
-            return _entities.OfType<IMovableEntity>().ToList();
-        }
         
         
         public void Initialize(LevelManagerSettings settings)
@@ -166,25 +162,29 @@ namespace Project.Level
 
         public void RunStep()
         {
-            // Compile move requests
-            var entities = this.GetMovableEntities();
-            var moveRequests = new Dictionary<IMovableEntity, MoveRequest>();
-            for (int ei = 0; ei < entities.Count; ei++)
+            // TODO: Rewrite entity request system to let each entity be able to make a request, which could be a movement or interaction.
+            //       Then reconcile all the requests, which can either succeed or fail.
+
+            var actionRequests = new List<EntityAction>();
+
+            foreach (var entity in _entities)
             {
-                var entity = entities[ei];
-                var request = entity.GetMoveRequest();
-                
-                if (!request.HasValue) { continue; }
-                
-                moveRequests.Add(entity, request.Value);
+                var request = entity.GetActionRequest();
+                if (request != null)
+                {
+                    actionRequests.Add(request);
+                }
             }
+            
+            var moveRequests = actionRequests.OfType<MoveAction>().ToList();
+            
             
             // Reconcile movement
 
             // TODO: Start with initial data about what positions are blocked/stepable
             var obstructions = GetObstructionMask();
             
-            foreach (var request in moveRequests.Values)
+            foreach (var request in moveRequests)
             {
                 if (!LocationInBounds(request.destination)) { continue; }
                 
@@ -193,11 +193,8 @@ namespace Project.Level
                 obstructions[request.destination.x, request.destination.z] += 1;
             }
             
-            foreach (var pair in moveRequests)
+            foreach (var request in moveRequests)
             {
-                var entity = pair.Key;
-                var request = pair.Value;
-
                 bool success = false;
 
                 if (LocationInBounds(request.destination))
@@ -205,16 +202,13 @@ namespace Project.Level
                     int count = obstructions[request.destination.x, request.destination.z];
                     success = count <= 1;   
                 }
-
+                
+                request.Actor.OnActionBegin(request, success);
                 if (success)
                 {
-                    entity.MoveTo(request.destination);
                     OnEntityMoved(request.source, request.destination);
                 }
-                else
-                {
-                    entity.OnMoveFailed();
-                }
+                
             }
         }
 
