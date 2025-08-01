@@ -92,7 +92,7 @@ namespace Project.Level
             }
         }
 
-        private float3 TilePositionToBaseLocalPosition(TilePosition tilePos)
+        public float3 TilePositionToBaseLocalPosition(TilePosition tilePos)
         {
             var dims = _settings.gridDimensions;
             var maxTile = (float2)dims / 2f - 0.5f;
@@ -105,7 +105,7 @@ namespace Project.Level
 
         public void AddEntityOfTypeAt(EntityType entityType, TilePosition pos)
         {
-            var entity = LevelEntity.Create(entityType);
+            var entity = LevelEntity.Create(entityType, this);
             this.AddEntityAt(entity, pos);
         }
         
@@ -168,8 +168,7 @@ namespace Project.Level
                 if (success)
                 {
                     // TODO: Store action for movement
-                    var destinationLocal = TilePositionToBaseLocalPosition(request.destination);
-                    entity.MoveTo(destinationLocal);
+                    entity.MoveTo(request.destination);
                 }
                 else
                 {

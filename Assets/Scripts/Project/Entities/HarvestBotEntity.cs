@@ -1,4 +1,5 @@
 using Mono.Cecil;
+using Project.Core;
 using Project.Enums;
 using Project.Level;
 using Unity.Mathematics;
@@ -16,9 +17,11 @@ namespace Project.Entities
             };
         }
 
-        public void MoveTo(float3 localPosition)
+        public void MoveTo(TilePosition position)
         {
+            var localPosition = this.LevelManager.TilePositionToBaseLocalPosition(position);
             this.SetLocalPositionImmediate(localPosition);
+            this.Position = position;
         }
 
         public new static LevelEntity CreateTest()

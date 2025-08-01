@@ -8,7 +8,7 @@ namespace Project.Entities
         public MoveRequest? GetMoveRequest(LevelManager level);
 
 
-        public void MoveTo(float3 localPosition);
+        public void MoveTo(TilePosition position);
     }
 
     public struct MoveRequest
