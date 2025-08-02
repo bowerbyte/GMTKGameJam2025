@@ -18,11 +18,14 @@ namespace Project.Core
         // inspector
         
         [Header("Settings")]
+        [SerializeField] private GameplaySettings _gameplaySettings;
         [SerializeField] private LevelManagerSettings _levelManagerSettings;
 
         // private
         
         private LevelManager _levelManager;
+
+        private float _stepTimer;
         
         private void Awake()
         {
@@ -40,14 +43,6 @@ namespace Project.Core
             DebugAddNRandomEntities(10, EntityType.HarvestBot);
             DebugAddNRandomEntities(16, EntityType.Tree);
             DebugAddNRandomEntities(10, EntityType.Stockpile);
-
-            // Game Simulation Steps
-            // (1) Plan Movement
-            // (1a) Reconcile Movement
-            // (2) Plan Interactions
-            // (2a) Reconcile Interactions
-            // (3) Execute Movement + Interactions (if possible)
-            // (4) Repeat
         }
 
         private void DebugAddNRandomEntities(int n, EntityType type)
@@ -71,9 +66,16 @@ namespace Project.Core
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Space))
+            // if (Input.GetKeyDown(KeyCode.Space))
+            // {
+            //     _levelManager.RunStep();
+            // }
+
+            _stepTimer += Time.deltaTime;
+            if (_stepTimer >= _gameplaySettings.stepDurationInSeconds)
             {
                 _levelManager.RunStep();
+                _stepTimer = 0.0f;
             }
         }
 
