@@ -13,19 +13,31 @@ namespace Project.Entities
         public override void Initialize()
         {
             base.Initialize();
-            this.Harvestable = true;
             this.ItemInventory = new EntityItem[1];
         }
         
         public override EntityAction GetActionRequest()
         {
             var frontLocation = this.Location + GridDirections.GridDirectionToOffset(this.Direction);
+
+            LevelEntity target;
             
-            if (this.AvailableItemSlotCount() > 0 && this.LevelManager.TryGetEntityAt(frontLocation, out LevelEntity target))
+            if (this.AvailableItemSlotCount() > 0 && this.LevelManager.TryGetEntityAt(frontLocation, out target))
             {
-                if (target.AvailableItemCount() > 0)
+                if (target.Harvestable && target.AvailableItemCount() > 0)
                 {
                     return new HarvestAction()
+                    {
+                        Actor = this,
+                        targetLocation = frontLocation,
+                    };
+                }
+            }
+            else if (this.AvailableItemCount() > 0 && this.LevelManager.TryGetEntityAt(frontLocation, out target))
+            {
+                if (target.Depositable && target.AvailableItemSlotCount() > 0)
+                {
+                    return new DepositAction()
                     {
                         Actor = this,
                         targetLocation = frontLocation,
@@ -62,6 +74,13 @@ namespace Project.Entities
                     HarvestItem(harvestAction.targetLocation);
                 }
             }
+            else if (request.TryCast<DepositAction>(out var depositAction))
+            {
+                if (approved)
+                {
+                    DepositItem(depositAction.targetLocation);
+                }
+            }
             else
             {
                 throw new NotImplementedException($"Action not implemented for {this.GetType()}");
@@ -85,9 +104,22 @@ namespace Project.Entities
             var item = LevelEntity.TransferItemBetweenInventories(targetEntity, this);
             
             item.transform.SetParent(this.transform);
-            item.transform.localPosition = Vector3.zero + Vector3.up * 1;
+            item.transform.localPosition = Vector3.zero + Vector3.up * targetEntity.AvailableItemCount() * 0.5f;
+        }
+        
+        public void DepositItem(TileLocation targetLocation)
+        {
+            if (!this.LevelManager.TryGetEntityAt(targetLocation, out LevelEntity targetEntity))
+            {
+                throw new Exception($"Entity {targetLocation} not found");
+            }
+            
+            var item = LevelEntity.TransferItemBetweenInventories(this, targetEntity);
+            
+            item.transform.SetParent(targetEntity.transform);
+            item.transform.localPosition = Vector3.zero + Vector3.up * targetEntity.AvailableItemCount() * 0.5f;
 
-            Debug.Log("Harvesting Item");
+            Debug.Log("Depositing Item");
         }
 
     }

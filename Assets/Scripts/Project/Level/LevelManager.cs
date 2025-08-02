@@ -254,6 +254,40 @@ namespace Project.Level
                 
                 actionResults.Add(request, true);
             }
+            
+            // Reconcile Deposits
+            
+            var depositCounts = new Dictionary<LevelEntity, int>();
+            var depositRequests = actionRequests.OfType<DepositAction>().ToList();
+            
+            foreach (var request in depositRequests)
+            {
+                if (!TryGetEntityAt(request.targetLocation, out LevelEntity targetEntity))
+                {
+                    continue;
+                }
+                depositCounts.TryAdd(targetEntity, 0);
+                depositCounts[targetEntity] += 1;
+            }
+            
+            foreach (var request in depositRequests)
+            {
+                // check if entity exists at the target location
+                if (!postMovementEntityLocations.TryGetValue(request.targetLocation, out LevelEntity targetEntity))
+                {
+                    actionResults.Add(request, false);
+                    continue;
+                }
+                
+                // check if entity can be deposited onto and if there's enough open item slots to be deposited into by ALL depositing entities
+                if (!targetEntity.Depositable || targetEntity.AvailableItemSlotCount() < depositCounts[targetEntity])
+                {
+                    actionResults.Add(request, false);
+                    continue;
+                }
+                
+                actionResults.Add(request, true);
+            }
 
             foreach (var action in actionResults.Keys)
             {

@@ -4,20 +4,13 @@ using UnityEngine;
 
 namespace Project.Entities
 {
-    public class TreeEntity : LevelEntity
+    public class StockpileEntity : LevelEntity
     {
         public override void Initialize()
         {
             base.Initialize();
             this.ItemInventory = new EntityItem[4];
-            for (int i = 0; i < this.ItemInventory.Length; i++)
-            {
-                var fruit = EntityItem.Create<FruitItem>();
-                this.ItemInventory[i] = fruit;
-                
-                fruit.transform.SetParent(this.transform);
-                fruit.transform.localPosition = Vector3.zero + Vector3.up * (i + 3);
-            }
+            
         }
 
 

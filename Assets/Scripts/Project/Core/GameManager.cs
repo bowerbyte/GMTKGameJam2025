@@ -38,7 +38,8 @@ namespace Project.Core
             _levelManager.transform.SetParent(this.transform);
 
             DebugAddNRandomEntities(10, EntityType.HarvestBot);
-            DebugAddNRandomEntities(10, EntityType.Tree);
+            DebugAddNRandomEntities(16, EntityType.Tree);
+            DebugAddNRandomEntities(10, EntityType.Stockpile);
 
             // Game Simulation Steps
             // (1) Plan Movement

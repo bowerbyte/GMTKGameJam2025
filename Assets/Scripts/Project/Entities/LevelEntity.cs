@@ -18,7 +18,8 @@ namespace Project.Entities
         public EntityItem[] ItemInventory { get; set; }
         public LevelManager LevelManager { get; set; }
 
-        public bool Harvestable { get; protected set; } = false;
+        public bool Harvestable => EntityTypes.HasFlag(this.Type, EntityFlags.Harvestable);
+        public bool Depositable => EntityTypes.HasFlag(this.Type, EntityFlags.Depositable);
         
         public bool HasInventory => ItemInventory != null && ItemInventory.Length > 0;
 
@@ -115,6 +116,9 @@ namespace Project.Entities
                     break;
                 case EntityType.Tree:
                     entity = LevelEntity.Create<TreeEntity>();
+                    break;
+                case EntityType.Stockpile:
+                    entity = LevelEntity.Create<StockpileEntity>();
                     break;
                 default:
                     throw new NotImplementedException($"Entity creation for type {entityType} is not implemented");

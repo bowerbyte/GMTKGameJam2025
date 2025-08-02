@@ -7,10 +7,14 @@ namespace Project.Enums
         Empty = 0,
         
         // Bots
-        HarvestBot = 1 | EntityFlags.Placeable | EntityFlags.Obstructing,
+        HarvestBot = 1 | EntityFlags.Placeable | EntityFlags.Obstructing | EntityFlags.Harvestable,
         
         // Crops
-        Tree = 11 | EntityFlags.Obstructing,
+        Tree = 11 | EntityFlags.Obstructing | EntityFlags.Harvestable,
+        
+        // Structures
+        Stockpile = 21 | EntityFlags.Obstructing | EntityFlags.Depositable,
+        
     }
     
     [Flags]
@@ -19,6 +23,8 @@ namespace Project.Enums
         None        = 0,
         Placeable   = 1 << 16,
         Obstructing = 1 << 17,
+        Harvestable = 1 << 18,
+        Depositable = 1 << 19,
     }
     
     public static class EntityTypes
