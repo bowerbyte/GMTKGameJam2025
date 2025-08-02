@@ -1,9 +1,8 @@
-namespace Project.Entities.Requests
+namespace Project.Entities.Actions
 {
     public abstract class EntityAction
     {
         public LevelEntity Actor { get; set; }
-
 
         
         public bool TryCast<T>(out T result) where T : EntityAction

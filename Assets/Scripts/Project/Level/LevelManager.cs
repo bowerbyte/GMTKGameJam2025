@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Project.Entities;
-using Project.Entities.Requests;
+using Project.Entities.Actions;
 using Project.Enums;
 using Project.Level.Settings;
 using Unity.Mathematics;
@@ -46,10 +46,7 @@ namespace Project.Level
             {
                 for (int zi = 0; zi < this.GridSize[1]; zi++)
                 {
-                    if (UnityEngine.Random.value > 0.1f)
-                    {
-                        _tilesTypes[xi, zi] = TileType.Grass;   
-                    }
+                    _tilesTypes[xi, zi] = TileType.Grass;
                 }
             }
 
@@ -105,25 +102,30 @@ namespace Project.Level
             return new float3(baseWorldPos.x, 0f, baseWorldPos.y);
         }
 
-        public LevelEntity AddEntityOfTypeAt(EntityType entityType, TileLocation pos)
+        public LevelEntity AddEntityOfTypeAt(EntityType entityType, TileLocation loc)
         {
             var entity = LevelEntity.Create(entityType, this);
-            this.AddEntityAt(entity, pos);
+            this.AddEntityAt(entity, loc);
             return entity;
         }
-        
-        public void AddEntityAt(LevelEntity entity, TileLocation pos)
+
+        public TileType GetTileType(TileLocation loc)
         {
-            if (this.TryGetEntityAt(pos, out LevelEntity _))
+            return _tilesTypes[loc.x, loc.z];
+        }
+        
+        public void AddEntityAt(LevelEntity entity, TileLocation loc)
+        {
+            if (this.TryGetEntityAt(loc, out LevelEntity _))
             {
-                throw new ArgumentException($"Position {pos} already contains an entity");
+                throw new ArgumentException($"Position {loc} already contains an entity");
             }
             
-            var localPos = LocationToBasePosition(pos);
+            var localPos = LocationToBasePosition(loc);
             entity.SetLocalPositionImmediate(localPos);
-            entity.Location = pos;
+            entity.Location = loc;
             
-            _locationToEntity.Add(pos, entity);
+            _locationToEntity.Add(loc, entity);
             _entities.Add(entity);
         }
 
@@ -137,7 +139,7 @@ namespace Project.Level
             return false;
         }
 
-        private void OnEntityMoved(TileLocation source, TileLocation destination)
+        public void OnEntityMoved(TileLocation source, TileLocation destination)
         {
             if (!TryGetEntityAt(source, out LevelEntity entity))
             {
@@ -176,12 +178,12 @@ namespace Project.Level
                 }
             }
             
+            var actionResults = new Dictionary<EntityAction, bool>();
+            
+            // Reconcile Movement
+            
             var moveRequests = actionRequests.OfType<MoveAction>().ToList();
-            
-            
-            // Reconcile movement
 
-            // TODO: Start with initial data about what positions are blocked/stepable
             var obstructions = GetObstructionMask();
             
             foreach (var request in moveRequests)
@@ -192,6 +194,11 @@ namespace Project.Level
                 // obstructions[request.source.x, request.source.z] -= 1; // allow entities to move into a tile as an existing entity moves out
                 obstructions[request.destination.x, request.destination.z] += 1;
             }
+
+            var postMovementEntityLocations = _locationToEntity.ToDictionary(
+                entry => entry.Key,
+                entry => entry.Value
+            ); // copy
             
             foreach (var request in moveRequests)
             {
@@ -203,12 +210,54 @@ namespace Project.Level
                     success = count <= 1;   
                 }
                 
-                request.Actor.OnActionBegin(request, success);
+                actionResults.Add(request, success);
+
                 if (success)
                 {
-                    OnEntityMoved(request.source, request.destination);
+                    postMovementEntityLocations.Remove(request.source);
+                    postMovementEntityLocations.Add(request.destination, request.Actor);
                 }
                 
+            }
+            
+            // Reconcile Harvesting
+            
+            var harvestCounts = new Dictionary<LevelEntity, int>();
+            
+            var harvestRequests = actionRequests.OfType<HarvestAction>().ToList();
+            
+            foreach (var request in harvestRequests)
+            {
+                if (!TryGetEntityAt(request.targetLocation, out LevelEntity targetEntity))
+                {
+                    continue;
+                }
+                harvestCounts.TryAdd(targetEntity, 0);
+                harvestCounts[targetEntity] += 1;
+            }
+            
+            foreach (var request in harvestRequests)
+            {
+                // check if entity exists at the target location
+                if (!postMovementEntityLocations.TryGetValue(request.targetLocation, out LevelEntity targetEntity))
+                {
+                    actionResults.Add(request, false);
+                    continue;
+                }
+                
+                // check if entity can be harvested and if there's enough items to be harvested by ALL harvesting entities
+                if (!targetEntity.Harvestable || targetEntity.AvailableItemCount() < harvestCounts[targetEntity])
+                {
+                    actionResults.Add(request, false);
+                    continue;
+                }
+                
+                actionResults.Add(request, true);
+            }
+
+            foreach (var action in actionResults.Keys)
+            {
+                action.Actor.OnActionBegin(action, actionResults[action]);
             }
         }
 

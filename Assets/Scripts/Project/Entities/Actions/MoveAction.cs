@@ -1,6 +1,6 @@
 using Project.Level;
 
-namespace Project.Entities.Requests
+namespace Project.Entities.Actions
 {
     public class MoveAction : EntityAction
     {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Project.Entities;
 using Project.Enums;
 using Project.Level;
 using Project.Level.Settings;
@@ -54,7 +55,11 @@ namespace Project.Core
             while (randomLocations.Count < n)
             {
                 var location = new TileLocation(UnityEngine.Random.Range(0, _levelManager.GridSize[0]-1), UnityEngine.Random.Range(0, _levelManager.GridSize[1]-1));
-                randomLocations.Add(location);
+                if (!_levelManager.TryGetEntityAt(location, out LevelEntity _) &&
+                    TileTypes.HasFlag(_levelManager.GetTileType(location), TileFlags.Walkable))
+                {
+                    randomLocations.Add(location);   
+                }
             }
 
             foreach (var location in randomLocations)
